@@ -71,19 +71,19 @@ export default function App() {
   // and update the state that tracks whether the form is submittable.
 
   useEffect(() => {
-    userSchema.isValid(value).then(setFormEnabled)
+    userSchema.isValid(value).then(setFormEnabled(formEnabled))
   }, [value]);
 
   const onChange = evt => {
     let {type, name, value, checked} = evt.target;
-    const updatedValue = type === 'checkbox' ? checked : value;
-    setValues({...values, [name]: updatedValue })
+    value = type === 'checkbox' ? checked : value;
+    setValues({...value, [name]: value })
     // ✨ TASK: IMPLEMENT YOUR INPUT CHANGE HANDLER
     // The logic is a bit different for the checkbox, but you can check
     // whether the type of event target is "checkbox" and act accordingly.
     // At every change, you should validate the updated value and send the validation
     // error to the state where we track frontend validation errors.
-    yup.reach(userSchema, name).validate(updatedValue)
+    yup.reach(userSchema, name).validate(value)
     .then(() => setErrors({...errors, [name]: ''}))
     .catch((err) => setErrors({...errors, [name]: err.errors[0]}))
   }
@@ -98,9 +98,9 @@ export default function App() {
     evt.preventDefault()
     axios.post('https://webapis.bloomtechdev.com/registration', value)
     .then(res => {
+      setValues(getInitialValues())
       setServerSuccess(res.data.message)
       setServerFailure('')
-      setValues(getInitialValues())
     })
     .catch(err => {
       setServerFailure(err.response.data.message)
@@ -117,8 +117,8 @@ export default function App() {
 
         <div className="inputGroup">
           <label htmlFor="username">Username:</label>
-          <input value={value.userName} onChange={onChange} id="username" name="username" type="text" placeholder="Type Username" />
-          (errors.username && <div className="validation">{errors.username}</div>)
+          <input value={value.username} onChange={onChange} id="username" name="username" type="text" placeholder="Type Username" />
+          {errors.username && <div className="validation">{errors.username}</div>}
         </div>
 
         <div className="inputGroup">
@@ -133,7 +133,7 @@ export default function App() {
               Rust
             </label>
           </fieldset>
-          (errors.favLanguage && <div className="validation">{errors.favLanguage}</div>)
+          {errors.favLanguage && <div className="validation">{errors.favLanguage}</div>}
         </div>
 
         <div className="inputGroup">
@@ -144,7 +144,7 @@ export default function App() {
             <option value="spaghetti">Spaghetti</option>
             <option value="broccoli">Broccoli</option>
           </select>
-          (errors.favFood && <div className="validation">{errors.favFood}</div>)
+          {errors.favFood && <div className="validation">{errors.favFood}</div>}
         </div>
 
         <div className="inputGroup">
@@ -152,7 +152,7 @@ export default function App() {
             <input id="agreement" type="checkbox" name="agreement" />
             Agree to our terms
           </label>
-          (errors.agreement && <div className="validation">{errors.agreement}</div>)
+          {errors.agreement && <div className="validation">{errors.agreement}</div>}
         </div>
 
         <div>
