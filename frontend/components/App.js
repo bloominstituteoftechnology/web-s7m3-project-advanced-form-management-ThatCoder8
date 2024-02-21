@@ -1,6 +1,6 @@
 // ❗ The ✨ TASKS inside this component are NOT IN ORDER.
 // ❗ Check the README for the appropriate sequence to follow.
-import React, {useState, useEffect} from 'react'
+import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import * as yup from 'yup'
 
@@ -26,33 +26,33 @@ const e = { // This is a dictionary of validation error messages.
 
 const userSchema = yup.object().shape({
   username: yup.string().trim()
-  .required(e.usernameRequired)
-  .min(3, e.usernameMin)
-  .max(20, e.usernameMax),
-favLanguage: yup.string()
-.required(e.favLanguageRequired).trim()
-.oneOf(['javascript','rust'], e.favLanguageOptions),
-favFood: yup.string()
-.required(e.favFoodRequired).trim()
-.oneOf(['broccoli', 'spaghetti', 'pizza'], e.favFoodOptions),
-agreement: yup.boolean()
-.required(e.agreementRequired)
-.oneOf([true], e.agreementOptions),
+    .required(e.usernameRequired)
+    .min(3, e.usernameMin)
+    .max(20, e.usernameMax),
+  favLanguage: yup.string()
+    .required(e.favLanguageRequired).trim()
+    .oneOf(['javascript', 'rust'], e.favLanguageOptions),
+  favFood: yup.string()
+    .required(e.favFoodRequired).trim()
+    .oneOf(['broccoli', 'spaghetti', 'pizza'], e.favFoodOptions),
+  agreement: yup.boolean()
+    .required(e.agreementRequired)
+    .oneOf([true], e.agreementOptions),
 })
 
 const getInitialValues = () => ({
- username: '', 
- favLanguage: '',
- favFood: '', 
- agreement: false,
+  username: '',
+  favLanguage: '',
+  favFood: '',
+  agreement: false,
 })
 
 const getInitialErrors = () => ({
-  username: '', 
+  username: '',
   favLanguage: '',
-  favFood: '', 
-  agreement:  '',
- })
+  favFood: '',
+  agreement: '',
+})
 
 
 export default function App() {
@@ -70,11 +70,12 @@ export default function App() {
   // Whenever the state of the form changes, validate it against the schema
   // and update the state that tracks whether the form is submittable.
 
-  useEffect(() => {
-    userSchema.isValid(value).then((valid) => {
-      console.log(valid);
-      setFormEnabled(valid)});
-  }, [value]);
+  // useEffect(() => {
+  //   userSchema.isValid(value).then((valid) => {
+  //     console.log(valid);
+  //     setFormEnabled(valid)});
+  // }, [value, formEnabled]);
+
 
   // const onChange = evt => {
   //   let {type, name, value, checked} = evt.target;
@@ -89,45 +90,92 @@ export default function App() {
   //   .then(() => setErrors({...errors, [name]: ''}))
   //   .catch((err) => setErrors({...errors, [name]: err.errors[0]}))
   // }
-
-
   const onChange = (evt) => {
-    const { type, name, checked } = evt.target;
-    const updatedValue = type === 'checkbox' ? checked : evt.target.value;
-  
-    setValues(prevValues => ({ ...prevValues, [name]: updatedValue }));
-  
-    // Validate the updated field against the schema
-    userSchema.validateAt(name, { [name]: updatedValue })
-      .then(() => setErrors((prevErrors) => ({ ...prevErrors, [name]: '' })))
-      .catch((err) => setErrors((prevErrors) => ({ ...prevErrors, [name]: err.errors[0] })));
+    let { type, name, value, checked } = evt.target;
+
+    // Set the value of the agreement checkbox to true when checked, false when unchecked
+    value = type === 'checkbox' ? checked : value;
+    setValues((prevValues) => ({ ...prevValues, [name]: value }));
+
+    // Handle agreement validation separately
+    if (name === 'agreement') {
+      setErrors((prevErrors) => ({ ...prevErrors, [name]: '' }));
+    } else {
+      yup
+        .reach(userSchema, name)
+        .validate(value)
+        .then(() => setErrors((prevErrors) => ({ ...prevErrors, [name]: '' })))
+        .catch((err) =>
+          setErrors((prevErrors) => ({ ...prevErrors, [name]: err.errors[0] }))
+        );
+    }
   };
-  const onSubmit = evt => {
-    // ✨ TASK: IMPLEMENT YOUR SUBMIT HANDLER
-    // Lots to do here! Prevent default behavior, disable the form to avoid
-    // double submits, and POST the form data to the endpoint. On success, reset
-    // the form. You must put the success and failure messages from the server
-    // in the states you have reserved for them, and the form
-    // should be re-enabled.
-    evt.preventDefault()
+
+
+  const onSubmit = (evt) => {
+    evt.preventDefault();
     console.log('Submitted Data:', value);
-    axios.post('https://webapis.bloomtechdev.com/registration', value)
-    .then(res => {
-      setValues(getInitialValues())
-      setServerSuccess(res.data.message)
-      setServerFailure('')
-    })
-    .catch(err => {
-      setServerFailure(err.response.data.message)
-      setServerSuccess()
-    })
-  }
+
+    // Check form validity before making the API call
+    userSchema.isValid(value).then((valid) => {
+      if (valid) {
+        axios
+          .post('https://webapis.bloomtechdev.com/registration', value)
+          .then((res) => {
+            setValues(getInitialValues());
+            setServerSuccess(res.data.message);
+            setServerFailure('');
+          })
+          .catch((err) => {
+            setServerFailure(err.response.data.message);
+            setServerSuccess('');
+          });
+      } else {
+        console.log('Form is not valid. Check console for errors.');
+      }
+    });
+  };
+  useEffect(() => {
+    userSchema
+      .validate(value, { abortEarly: false })
+      .then(() => {
+        console.log('All validations passed');
+        setFormEnabled(value.agreement);
+      })
+      .catch((validationErrors) => {
+        console.log('Validation errors:', validationErrors);
+        setFormEnabled(false);
+      });
+  }, [value]);
+
+
+
+  // const onSubmit = evt => {
+  //   // ✨ TASK: IMPLEMENT YOUR SUBMIT HANDLER
+  //   // Lots to do here! Prevent default behavior, disable the form to avoid
+  //   // double submits, and POST the form data to the endpoint. On success, reset
+  //   // the form. You must put the success and failure messages from the server
+  //   // in the states you have reserved for them, and the form
+  //   // should be re-enabled.
+  //   evt.preventDefault()
+  //   console.log('Submitted Data:', value);
+  //   axios.post('https://webapis.bloomtechdev.com/registration', value)
+  //   .then(res => {
+  //     setValues(getInitialValues())
+  //     setServerSuccess(res.data.message)
+  //     setServerFailure('')
+  //   })
+  //   .catch(err => {
+  //     setServerFailure(err.response.data.message)
+  //     setServerSuccess()
+  //   })
+  // }
 
   return (
     <div> {/* TASK: COMPLETE THE JSX */}
       <h2>Create an Account</h2>
       <form onSubmit={onSubmit}>
-       {serverSuccess && <h4 className="success">{serverSuccess}</h4>}
+        {serverSuccess && <h4 className="success">{serverSuccess}</h4>}
         {serverFailure && <h4 className="error">{serverFailure}</h4>}
 
         <div className="inputGroup">
@@ -140,7 +188,7 @@ export default function App() {
           <fieldset>
             <legend>Favorite Language:</legend>
             <label>
-              <input checked={value.favLanguage == 'javascript'}onChange={onChange} type="radio" name="favLanguage" value="javascript" />
+              <input checked={value.favLanguage == 'javascript'} onChange={onChange} type="radio" name="favLanguage" value="javascript" />
               JavaScript
             </label>
             <label>
@@ -153,7 +201,7 @@ export default function App() {
 
         <div className="inputGroup">
           <label htmlFor="favFood">Favorite Food:</label>
-          <select value={value.favFood} onChange={onChange}id="favFood" name="favFood">
+          <select value={value.favFood} onChange={onChange} id="favFood" name="favFood">
             <option value="">-- Select Favorite Food --</option>
             <option value="pizza">Pizza</option>
             <option value="spaghetti">Spaghetti</option>
@@ -164,14 +212,20 @@ export default function App() {
 
         <div className="inputGroup">
           <label>
-            <input id="agreement" type="checkbox" name="agreement" />
+            <input
+              id="agreement"
+              type="checkbox"
+              name="agreement"
+              checked={value.agreement}  // Ensure the checked attribute is linked to the value state
+              onChange={onChange}
+            />
             Agree to our terms
           </label>
           {errors.agreement && <div className="validation">{errors.agreement}</div>}
         </div>
 
         <div>
-          <input disabled={!formEnabled} type="submit"/>
+          <input disabled={!formEnabled} type="submit" />
         </div>
       </form>
     </div>
