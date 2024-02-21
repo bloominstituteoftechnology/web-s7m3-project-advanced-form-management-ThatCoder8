@@ -71,23 +71,37 @@ export default function App() {
   // and update the state that tracks whether the form is submittable.
 
   useEffect(() => {
-    userSchema.isValid(value).then(setFormEnabled(formEnabled))
+    userSchema.isValid(value).then((valid) => {
+      console.log(valid);
+      setFormEnabled(valid)});
   }, [value]);
 
-  const onChange = evt => {
-    let {type, name, value, checked} = evt.target;
-    value = type === 'checkbox' ? checked : value;
-    setValues({...value, [name]: value })
-    // ✨ TASK: IMPLEMENT YOUR INPUT CHANGE HANDLER
-    // The logic is a bit different for the checkbox, but you can check
-    // whether the type of event target is "checkbox" and act accordingly.
-    // At every change, you should validate the updated value and send the validation
-    // error to the state where we track frontend validation errors.
-    yup.reach(userSchema, name).validate(value)
-    .then(() => setErrors({...errors, [name]: ''}))
-    .catch((err) => setErrors({...errors, [name]: err.errors[0]}))
-  }
+  // const onChange = evt => {
+  //   let {type, name, value, checked} = evt.target;
+  //   value = type === 'checkbox' ? checked : value;
+  //   setValues(prevValues => ({ ...prevValues, [name]: value }));
+  //   // ✨ TASK: IMPLEMENT YOUR INPUT CHANGE HANDLER
+  //   // The logic is a bit different for the checkbox, but you can check
+  //   // whether the type of event target is "checkbox" and act accordingly.
+  //   // At every change, you should validate the updated value and send the validation
+  //   // error to the state where we track frontend validation errors.
+  //   yup.reach(userSchema, name).validate(value)
+  //   .then(() => setErrors({...errors, [name]: ''}))
+  //   .catch((err) => setErrors({...errors, [name]: err.errors[0]}))
+  // }
 
+
+  const onChange = (evt) => {
+    const { type, name, checked } = evt.target;
+    const updatedValue = type === 'checkbox' ? checked : evt.target.value;
+  
+    setValues(prevValues => ({ ...prevValues, [name]: updatedValue }));
+  
+    // Validate the updated field against the schema
+    userSchema.validateAt(name, { [name]: updatedValue })
+      .then(() => setErrors((prevErrors) => ({ ...prevErrors, [name]: '' })))
+      .catch((err) => setErrors((prevErrors) => ({ ...prevErrors, [name]: err.errors[0] })));
+  };
   const onSubmit = evt => {
     // ✨ TASK: IMPLEMENT YOUR SUBMIT HANDLER
     // Lots to do here! Prevent default behavior, disable the form to avoid
@@ -96,6 +110,7 @@ export default function App() {
     // in the states you have reserved for them, and the form
     // should be re-enabled.
     evt.preventDefault()
+    console.log('Submitted Data:', value);
     axios.post('https://webapis.bloomtechdev.com/registration', value)
     .then(res => {
       setValues(getInitialValues())
